@@ -1,4 +1,8 @@
 import React from 'react';
+import { fmtShort } from '../../utils/format';
+
+const abbrevLabel = (s: string) =>
+  s.replace(/^(?:Kab\.|Kota|Kep\.)\s+/, '').slice(0, 14);
 
 export interface LinePoint {
   x: number;
@@ -26,7 +30,7 @@ export const SVGLineChart: React.FC<SVGLineChartProps> = ({
   const iW = W - PAD.left - PAD.right;
   const iH = H - PAD.top - PAD.bottom;
 
-  const maxVal = Math.max(...data.map(d => d.value), 1);
+  const maxVal = Math.max(...data.map(d => d.value), 1) * 1.1;
   const toX = (i: number) => PAD.left + (i / (data.length - 1)) * iW;
   const toY = (v: number) => PAD.top + iH - (v / maxVal) * iH;
 
@@ -41,12 +45,6 @@ export const SVGLineChart: React.FC<SVGLineChartProps> = ({
 
   const areaD = `${pathD} L ${toX(data.length - 1)} ${PAD.top + iH} L ${toX(0)} ${PAD.top + iH} Z`;
 
-  const fmtShort = (v: number) => {
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
-    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
-    return String(v);
-  };
-
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg" style={{ maxHeight: height }}>
       {/* Grid lines */}
@@ -57,7 +55,7 @@ export const SVGLineChart: React.FC<SVGLineChartProps> = ({
             <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
               stroke="var(--line)" strokeWidth="1" />
             <text x={PAD.left - 6} y={y + 4} textAnchor="end"
-              fontSize="9" fill="var(--ink-400)" fontFamily="var(--f-mono)">
+              fontSize="9" fill="var(--ink-500)" fontFamily="var(--f-body)">
               {fmtShort(maxVal * p)}
             </text>
           </g>
@@ -73,9 +71,13 @@ export const SVGLineChart: React.FC<SVGLineChartProps> = ({
       {/* Points */}
       {data.map((d, i) => (
         <g key={i}>
-          <circle cx={toX(i)} cy={toY(d.value)} r="4" fill={color} stroke="#fff" strokeWidth="1.5" />
+          <text x={toX(i)} y={toY(d.value) - 10} textAnchor="middle"
+            fontSize="9" fill="var(--ink-700)" fontFamily="var(--f-body)" fontWeight="600">
+            {fmtShort(d.value)}
+          </text>
+          <circle cx={toX(i)} cy={toY(d.value)} r="5" fill={color} stroke="#fff" strokeWidth="1.5" />
           <text x={toX(i)} y={H - 6} textAnchor="middle"
-            fontSize="9.5" fill="var(--ink-400)" fontFamily="var(--f-mono)">
+            fontSize="9.5" fill="var(--ink-500)" fontFamily="var(--f-body)">
             {d.label}
           </text>
         </g>
@@ -99,7 +101,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({ groups, height
   if (!groups.length) return null;
   const W = 500;
   const H = height;
-  const PAD = { top: 16, right: 16, bottom: 36, left: 44 };
+  const PAD = { top: 16, right: 16, bottom: 56, left: 44 };
   const iW = W - PAD.left - PAD.right;
   const iH = H - PAD.top - PAD.bottom;
 
@@ -107,12 +109,6 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({ groups, height
   const maxTotal = Math.max(...totals, 1);
   const barW = (iW / groups.length) * 0.65;
   const gap = iW / groups.length;
-
-  const fmtShort = (v: number) => {
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}jt`;
-    if (v >= 1_000) return `${(v / 1_000).toFixed(0)}rb`;
-    return String(v);
-  };
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg" style={{ maxHeight: height }}>
@@ -122,7 +118,7 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({ groups, height
           <g key={p}>
             <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y} stroke="var(--line)" strokeWidth="1" />
             <text x={PAD.left - 6} y={y + 4} textAnchor="end"
-              fontSize="9" fill="var(--ink-400)" fontFamily="var(--f-mono)">
+              fontSize="9" fill="var(--ink-500)" fontFamily="var(--f-body)">
               {fmtShort(maxTotal * p)}
             </text>
           </g>
@@ -130,6 +126,8 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({ groups, height
       })}
       {groups.map((g, gi) => {
         const x = PAD.left + gi * gap + (gap - barW) / 2;
+        const lx = x + barW / 2;
+        const ly = PAD.top + iH + 14;
         let curY = PAD.top + iH;
         return (
           <g key={gi}>
@@ -140,9 +138,10 @@ export const StackedBarChart: React.FC<StackedBarChartProps> = ({ groups, height
               return <rect key={si} x={x} y={y} width={barW} height={barH}
                 fill={seg.color} rx={si === g.segments.length - 1 ? 3 : 0} />;
             })}
-            <text x={x + barW / 2} y={H - 6} textAnchor="middle"
-              fontSize="9" fill="var(--ink-400)" fontFamily="var(--f-mono)">
-              {g.label.length > 5 ? g.label.slice(0, 4) + '…' : g.label}
+            <text x={lx} y={ly} textAnchor="end"
+              transform={`rotate(-40, ${lx}, ${ly})`}
+              fontSize="8.5" fill="var(--ink-500)" fontFamily="var(--f-body)">
+              {abbrevLabel(g.label)}
             </text>
           </g>
         );

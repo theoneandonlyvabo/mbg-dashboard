@@ -22,11 +22,12 @@
   position: relative;
   top: 2px;
 }
-.nav-tab:hover { color: var(--navy-900); background: var(--ice-50); }
+.nav-tab:hover { color: var(--navy-900); background: var(--blue-100); }
 .nav-tab.active {
-  color: var(--blue-700);
+  color: var(--navy-900);
   background: var(--white);
-  border: 2px solid var(--line);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--blue-600);
   border-bottom: 2px solid var(--white);
   font-weight: 700;
 }
@@ -41,6 +42,6 @@
   flex-wrap: wrap;
   gap: 10px;
   font-size: 11px;
-  color: var(--ink-400);
+  color: var(--ink-600);
 }
 .dash-footer .fcol { display: flex; gap: 18px; flex-wrap: wrap; }
