@@ -1,0 +1,87 @@
+:root {
+  --bg: #F8FAFC;
+  --surface: #FFFFFF;
+  --ink: #0F172A;
+  --ink-2: #334155;
+  --ink-3: #64748B;
+  --ink-4: #94A3B8;
+  --rule: #E2E8F0;
+
+  --blue:    #2563EB;
+  --violet:  #7C3AED;
+  --red:     #DC2626;
+  --amber:   #D97706;
+  --emerald: #059669;
+  --cyan:    #0891B2;
+  --rose:    #BE185D;
+  --stone:   #78716C;
+  --indigo:  #4F46E5;
+
+  --radius: 4px;
+  --font: 'Inter', system-ui, sans-serif;
+
+  --space-section: clamp(4rem, 6vw, 7rem);
+  --space-chart: clamp(1.5rem, 3vw, 3rem);
+  --max-w: 1100px;
+  --px: clamp(1.25rem, 5vw, 3rem);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-family: var(--font); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+body { min-height: 100vh; }
+
+.container {
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: 0 var(--px);
+}
+
+/* Typography */
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.section-title {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1.2;
+  margin-top: 0.25rem;
+}
+
+.section-title strong {
+  font-weight: 700;
+}
+
+hr.rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: var(--space-section) 0;
+}
+
+/* SVG chart text */
+.bar-label {
+  font: 500 12px var(--font);
+  fill: var(--ink-2);
+}
+
+.bar-value {
+  font: 500 11px var(--font);
+  fill: var(--ink-3);
+}
+
+.axis-tick {
+  font: 400 10px var(--font);
+  fill: var(--ink-4);
+}
+
+.chart-wrap {
+  width: 100%;
+  overflow: hidden;
+}
