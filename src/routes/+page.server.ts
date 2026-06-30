@@ -137,6 +137,14 @@ export const load: PageServerLoad = () => {
 	for (const [key, set] of kabSet) gMap.get(key)!.kabkota = set.size;
 	const geoStats: Record<string, GeoStat> = Object.fromEntries(gMap);
 
+	// jenjang breakdown per province (for pie chart)
+	const jenjangByProv: Record<string, Record<string, number>> = {};
+	for (const r of rows) {
+		const key = normProv(r.provinsi);
+		if (!jenjangByProv[key]) jenjangByProv[key] = {};
+		jenjangByProv[key][r.jenjang] = (jenjangByProv[key][r.jenjang] ?? 0) + r.penerima;
+	}
+
 	// ── Auto-generated insights (derived from real figures) ──
 	const t = views.ALL.totals;
 	const gAll = views.ALL.gender;
@@ -208,6 +216,7 @@ export const load: PageServerLoad = () => {
 		jenjangOrder: JENJANG_ORDER.filter((j) => jMap.has(j)),
 		geoStats,
 		insights,
-		forecast: { base: t.penerima, target: NATIONAL_TARGET }
+		forecast: { base: t.penerima, target: NATIONAL_TARGET },
+		jenjangByProv
 	};
 };

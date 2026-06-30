@@ -6,6 +6,7 @@
 	import GroupedBar from '$lib/charts/GroupedBar.svelte';
 	import CountUp from '$lib/CountUp.svelte';
 	import ChoroplethMap from '$lib/charts/ChoroplethMap.svelte';
+	import PieChart from '$lib/charts/PieChart.svelte';
 	import ForecastChart from '$lib/charts/ForecastChart.svelte';
 	import TechStack from '$lib/TechStack.svelte';
 	import { fmtShort, fmtFull } from '$lib/format';
@@ -17,12 +18,13 @@
 
 	// Map / province drill-down — geoStats is static server data
 	const geoRanked = untrack(() => Object.values(data.geoStats).sort((a, b) => b.penerima - a.penerima));
-	let selectedProv = $state(geoRanked[0]?.key ?? '');
-	const activeStat = $derived(data.geoStats[selectedProv] ?? geoRanked[0]);
-	const activeRank = $derived(geoRanked.findIndex((s) => s.key === activeStat?.key) + 1);
+	let selectedProv = $state('');
+	const activeStat = $derived(selectedProv ? (data.geoStats[selectedProv] ?? null) : null);
+	const activeRank = $derived(activeStat ? geoRanked.findIndex((s) => s.key === activeStat.key) + 1 : 0);
 	const activeGenderPct = $derived.by(() => {
-		const tot = (activeStat?.laki ?? 0) + (activeStat?.perempuan ?? 0) || 1;
-		return ((activeStat?.laki ?? 0) / tot) * 100;
+		if (!activeStat) return 50;
+		const tot = activeStat.laki + activeStat.perempuan || 1;
+		return (activeStat.laki / tot) * 100;
 	});
 
 	const view = $derived(data.views[selected] ?? data.views.ALL);
@@ -47,6 +49,14 @@
 	]);
 
 	const maxJenjang = $derived(Math.max(...data.jenjangDist.map((j) => j.penerima)));
+
+	const provJenjangPie = $derived.by(() => {
+		if (!selectedProv) return [];
+		const byJ = data.jenjangByProv[selectedProv] ?? {};
+		return Object.entries(byJ)
+			.map(([jenjang, value]) => ({ label: jenjang, value, color: JENJANG_COLORS[jenjang] ?? 'var(--ink-3)' }))
+			.sort((a, b) => b.value - a.value);
+	});
 
 	const kpis = $derived([
 		{ n: view.totals.penerima, label: 'Penerima Manfaat', unit: 'jiwa' },
@@ -111,7 +121,7 @@
 		{/each}
 
 		<!-- CHOROPLETH MAP -->
-		<div class="tile span8">
+		<div class="tile span8 row2">
 			<div class="tile-head">
 				<div>
 					<span class="tile-eyebrow">Peta Sebaran</span>
@@ -126,27 +136,68 @@
 
 		<!-- PROVINCE DETAIL -->
 		<div class="tile span4 detail">
-			<span class="tile-eyebrow">Provinsi terpilih · #{activeRank}</span>
-			<h2 class="detail-name">{activeStat?.name ?? '—'}</h2>
-			<div class="detail-big num"><CountUp value={activeStat?.penerima ?? 0} /></div>
-			<span class="detail-cap">penerima manfaat</span>
+			{#if activeStat}
+				<span class="tile-eyebrow">Provinsi terpilih · #{activeRank}</span>
+				<h2 class="detail-name">{activeStat.name}</h2>
+				<div class="detail-big num"><CountUp value={activeStat.penerima} /></div>
+				<span class="detail-cap">penerima manfaat</span>
 
-			<div class="detail-gender">
-				<div class="dg-track">
-					<span class="dg-l" style:width="{activeGenderPct}%"></span>
+				<div class="detail-gender">
+					<div class="dg-track">
+						<span class="dg-l" style:width="{activeGenderPct}%"></span>
+					</div>
+					<div class="dg-labels">
+						<span>L · {fmtShort(activeStat.laki)}</span>
+						<span>P · {fmtShort(activeStat.perempuan)}</span>
+					</div>
 				</div>
-				<div class="dg-labels">
-					<span>L · {fmtShort(activeStat?.laki ?? 0)}</span>
-					<span>P · {fmtShort(activeStat?.perempuan ?? 0)}</span>
-				</div>
-			</div>
 
-			<div class="detail-grid">
-				<div><span class="dgi-v num">{fmtShort(activeStat?.satpen ?? 0)}</span><span class="dgi-l">Satpen</span></div>
-				<div><span class="dgi-v num">{activeStat?.kabkota ?? 0}</span><span class="dgi-l">Kab/Kota</span></div>
-				<div><span class="dgi-v num">{fmtFull(activeStat?.alergi ?? 0)}</span><span class="dgi-l">Alergi</span></div>
-				<div><span class="dgi-v num">{fmtFull((activeStat?.fobia ?? 0) + (activeStat?.intoleransi ?? 0))}</span><span class="dgi-l">Fobia + Intol.</span></div>
+				<div class="detail-grid">
+					<div><span class="dgi-v num">{fmtShort(activeStat.satpen)}</span><span class="dgi-l">Satpen</span></div>
+					<div><span class="dgi-v num">{activeStat.kabkota}</span><span class="dgi-l">Kab/Kota</span></div>
+					<div><span class="dgi-v num">{fmtFull(activeStat.alergi)}</span><span class="dgi-l">Alergi</span></div>
+					<div><span class="dgi-v num">{fmtFull(activeStat.fobia + activeStat.intoleransi)}</span><span class="dgi-l">Fobia + Intol.</span></div>
+				</div>
+			{:else}
+				<div class="detail-empty">
+					<div class="detail-empty-icon" aria-hidden="true">
+						<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+							<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/>
+							<circle cx="12" cy="10" r="2.5"/>
+						</svg>
+					</div>
+					<p class="detail-empty-text">Klik provinsi pada peta untuk melihat detail wilayah</p>
+				</div>
+			{/if}
+		</div>
+
+		<!-- JENJANG PIE -->
+		<div class="tile span4 pie-tile">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Sebaran Jenjang</span>
+					<h2 class="tile-title">{activeStat ? activeStat.name : 'Pilih Provinsi'}</h2>
+				</div>
+				{#if activeStat}
+					<span class="tag">Per jenjang</span>
+				{/if}
 			</div>
+			{#if provJenjangPie.length}
+				<div class="tile-chart">
+					<PieChart data={provJenjangPie} size={150} />
+				</div>
+			{:else}
+				<div class="pie-empty">
+					<div class="pie-empty-icon" aria-hidden="true">
+						<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+							<circle cx="12" cy="12" r="9"/>
+							<path d="M12 12 L12 3"/>
+							<path d="M12 12 L20.1 16.5"/>
+						</svg>
+					</div>
+					<p class="pie-empty-text">Pilih provinsi untuk melihat distribusi jenjang</p>
+				</div>
+			{/if}
 		</div>
 
 		<!-- PROVINCE RANKING (tall) -->
@@ -418,7 +469,7 @@
 	.kpi { grid-column: span 3; }
 
 	/* Province detail */
-	.detail { display: flex; flex-direction: column; }
+	.detail { display: flex; flex-direction: column; min-height: 220px; }
 	.detail-name { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; letter-spacing: -0.02em; color: var(--ink); margin-top: 0.45rem; line-height: 1.1; }
 	.detail-big { font-size: 2.1rem; font-weight: 700; color: var(--ink); letter-spacing: -0.03em; margin-top: 0.6rem; line-height: 1; }
 	.detail-cap { font-size: 0.72rem; color: var(--ink-3); }
@@ -430,6 +481,51 @@
 	.detail-grid > div { display: flex; flex-direction: column; gap: 0.1rem; padding: 0.55rem 0.65rem; background: var(--surface-2); border-radius: 9px; }
 	.dgi-v { font-size: 1rem; font-weight: 600; color: var(--ink); }
 	.dgi-l { font-size: 0.62rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
+
+	/* Province detail empty state */
+	.detail-empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.8rem;
+		flex: 1;
+		padding: 2rem 1rem;
+		text-align: center;
+	}
+	.detail-empty-icon {
+		color: var(--ink-4);
+		opacity: 0.6;
+	}
+	.detail-empty-text {
+		font-size: 0.78rem;
+		color: var(--ink-3);
+		line-height: 1.5;
+		max-width: 18ch;
+	}
+
+	/* Jenjang pie tile */
+	.pie-tile { display: flex; flex-direction: column; }
+	.pie-empty {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.7rem;
+		flex: 1;
+		padding: 1.5rem 1rem;
+		text-align: center;
+	}
+	.pie-empty-icon {
+		color: var(--ink-4);
+		opacity: 0.55;
+	}
+	.pie-empty-text {
+		font-size: 0.75rem;
+		color: var(--ink-3);
+		line-height: 1.5;
+		max-width: 20ch;
+	}
 
 	/* AI band */
 	.ai-head {
