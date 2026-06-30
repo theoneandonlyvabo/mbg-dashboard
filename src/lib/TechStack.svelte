@@ -43,6 +43,13 @@
 	}
 	// slugs not on Simple Icons → render a lettered fallback
 	const FALLBACK = new Set(['svg', 'geojson']);
+
+	const members = [
+		{ name: 'Airel Adrivano', nim: '2410512135' },
+		{ name: 'Daffa Fitriano', nim: '2410512125' },
+		{ name: 'Gathfaan Agra Pratama', nim: '2410512107' },
+		{ name: 'Sulthan Nadhif', nim: '2410512110' }
+	];
 </script>
 
 <section class="tech">
@@ -75,6 +82,34 @@
 				</div>
 			</div>
 		{/each}
+	</div>
+
+	<!-- GitHub + Team -->
+	<div class="meta-row">
+		<a class="gh-link" href="https://github.com/theoneandonlyvabo/mbg-dashboard" target="_blank" rel="noopener noreferrer" aria-label="Lihat source code di GitHub">
+			<span class="gh-ico">
+				<img src="https://cdn.simpleicons.org/github" alt="GitHub" width="18" height="18" />
+			</span>
+			<span class="gh-text">
+				<span class="gh-repo">theoneandonlyvabo / mbg-dashboard</span>
+				<span class="gh-sub">Source code · Open source</span>
+			</span>
+			<svg class="gh-arrow" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<path d="M3 8h10M9 4l4 4-4 4"/>
+			</svg>
+		</a>
+
+		<div class="team">
+			<span class="team-label">Anggota Kelompok</span>
+			<div class="team-members">
+				{#each members as m (m.nim)}
+					<div class="member">
+						<span class="member-name">{m.name}</span>
+						<span class="member-nim num">{m.nim}</span>
+					</div>
+				{/each}
+			</div>
+		</div>
 	</div>
 </section>
 
@@ -139,4 +174,72 @@
 	.tech-text { display: flex; flex-direction: column; gap: 0.1rem; min-width: 0; }
 	.tech-name { font-size: 0.85rem; font-weight: 600; color: var(--ink); }
 	.tech-desc { font-size: 0.7rem; color: var(--ink-3); line-height: 1.3; }
+
+	/* GitHub + Team */
+	.meta-row {
+		display: flex;
+		align-items: flex-start;
+		gap: 1.5rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--rule);
+		flex-wrap: wrap;
+	}
+	.gh-link {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 1rem;
+		background: var(--surface);
+		border: 1px solid var(--rule);
+		border-radius: 12px;
+		text-decoration: none;
+		transition: border-color 0.2s var(--ease), transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+		flex-shrink: 0;
+	}
+	.gh-link:hover {
+		border-color: var(--ink-3);
+		transform: translateY(-2px);
+		box-shadow: 0 10px 24px -16px rgba(15, 23, 42, 0.35);
+	}
+	.gh-ico {
+		width: 36px;
+		height: 36px;
+		display: grid;
+		place-items: center;
+		background: var(--surface-2);
+		border-radius: 8px;
+		flex-shrink: 0;
+	}
+	.gh-ico img { display: block; }
+	.gh-text { display: flex; flex-direction: column; gap: 0.1rem; }
+	.gh-repo { font-size: 0.82rem; font-weight: 600; color: var(--ink); font-family: var(--font-mono); letter-spacing: -0.01em; }
+	.gh-sub { font-size: 0.65rem; color: var(--ink-3); }
+	.gh-arrow { color: var(--ink-3); flex-shrink: 0; }
+
+	.team { display: flex; flex-direction: column; gap: 0.5rem; }
+	.team-label {
+		font-family: var(--font-mono);
+		font-size: 0.6rem;
+		font-weight: 500;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--ink-3);
+	}
+	.team-members {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.member {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.38rem 0.7rem;
+		background: var(--surface);
+		border: 1px solid var(--rule);
+		border-radius: 999px;
+	}
+	.member-name { font-size: 0.75rem; font-weight: 500; color: var(--ink); }
+	.member-nim { font-size: 0.65rem; color: var(--ink-3); }
 </style>
