@@ -1,5 +1,4 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import csv from '../../static/data.csv?raw';
 import type { PageServerLoad } from './$types';
 import type { View, JenjangDist, ProvinsiBar, SpecialRow, SimpleBar, Totals, GeoStat, Insight } from '$lib/types';
 import { normProv, displayProv } from '$lib/geo';
@@ -84,7 +83,6 @@ function buildView(rows: Row[]): View {
 }
 
 export const load: PageServerLoad = () => {
-	const csv = readFileSync(join(process.cwd(), 'static', 'data.csv'), 'utf-8');
 	const lines = csv.split('\n').filter(Boolean);
 
 	const rows: Row[] = lines.slice(1).map((line) => {
