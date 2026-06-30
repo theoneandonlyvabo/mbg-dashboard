@@ -40,12 +40,17 @@
 	const x = $derived(d3.scaleLinear().domain([0, months]).range([PAD.l, PAD.l + plotW]));
 	const y = $derived(d3.scaleLinear().domain([0, target * 1.04]).range([H - PAD.b, PAD.t]));
 
-	const lineGen = $derived(d3.line<{ m: number; v: number }>().x((d) => x(d.m)).y((d) => y(d.v)).curve(d3.curveMonotoneX));
-	const bandGen = $derived(
-		d3.area<{ m: number; hi: number; lo: number }>().x((d) => x(d.m)).y0((d) => y(d.lo)).y1((d) => y(d.hi)).curve(d3.curveMonotoneX)
-	);
-	const linePath = $derived(lineGen(points) ?? '');
-	const bandPath = $derived(bandGen(points) ?? '');
+	// ponytail: explicit reads of x/y/points so Svelte 5 tracks them as deps (closures don't register signals)
+	const linePath = $derived.by(() => {
+		const xFn = x, yFn = y, pts = points;
+		return d3.line<{ m: number; v: number }>()
+			.x((d) => xFn(d.m)).y((d) => yFn(d.v)).curve(d3.curveMonotoneX)(pts) ?? '';
+	});
+	const bandPath = $derived.by(() => {
+		const xFn = x, yFn = y, pts = points;
+		return d3.area<{ m: number; hi: number; lo: number }>()
+			.x((d) => xFn(d.m)).y0((d) => yFn(d.lo)).y1((d) => yFn(d.hi)).curve(d3.curveMonotoneX)(pts) ?? '';
+	});
 
 	const yTicks = $derived(y.ticks(4));
 	const xTickStep = $derived(months <= 24 ? 6 : 12);
