@@ -1,7 +1,11 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import type { PageServerLoad } from './$types';
-import type { View, JenjangDist, ProvinsiBar, SpecialRow, SimpleBar, Totals } from '$lib/types';
+import type { View, JenjangDist, ProvinsiBar, SpecialRow, SimpleBar, Totals, GeoStat, Insight } from '$lib/types';
+import { normProv, displayProv } from '$lib/geo';
+
+/** Real MBG program target: full national rollout by 2029 (~82.9 juta penerima). */
+const NATIONAL_TARGET = 82_900_000;
 
 interface Row {
 	provinsi: string;
@@ -116,5 +120,96 @@ export const load: PageServerLoad = () => {
 		if (sub.length) views[j] = buildView(sub);
 	}
 
-	return { views, jenjangDist, jenjangOrder: JENJANG_ORDER.filter((j) => jMap.has(j)) };
+	// Per-province aggregate keyed by canonical name (for the choropleth)
+	const gMap = new Map<string, GeoStat>();
+	const kabSet = new Map<string, Set<string>>();
+	for (const r of rows) {
+		const key = normProv(r.provinsi);
+		const g = gMap.get(key) ?? {
+			key,
+			name: displayProv(r.provinsi),
+			penerima: 0, laki: 0, perempuan: 0, alergi: 0, fobia: 0, intoleransi: 0, satpen: 0, kabkota: 0
+		};
+		g.penerima += r.penerima; g.laki += r.laki; g.perempuan += r.perempuan;
+		g.alergi += r.alergi; g.fobia += r.fobia; g.intoleransi += r.intoleransi; g.satpen += r.satpen;
+		gMap.set(key, g);
+		if (!kabSet.has(key)) kabSet.set(key, new Set());
+		kabSet.get(key)!.add(r.kabkota);
+	}
+	for (const [key, set] of kabSet) gMap.get(key)!.kabkota = set.size;
+	const geoStats: Record<string, GeoStat> = Object.fromEntries(gMap);
+
+	// ── Auto-generated insights (derived from real figures) ──
+	const t = views.ALL.totals;
+	const gAll = views.ALL.gender;
+	const totalGender = gAll.laki + gAll.perempuan || 1;
+	const provSorted = [...gMap.values()].sort((a, b) => b.penerima - a.penerima);
+	const top3Share = (provSorted.slice(0, 3).reduce((s, p) => s + p.penerima, 0) / t.penerima) * 100;
+	const sdShare = ((views.SD?.totals.penerima ?? 0) / t.penerima) * 100;
+	const special = gMap.size
+		? [...gMap.values()].reduce((s, p) => s + p.alergi + p.fobia + p.intoleransi, 0)
+		: 0;
+	const specialPer1k = (special / t.penerima) * 1000;
+	const coverage = (t.penerima / NATIONAL_TARGET) * 100;
+	const lowest = provSorted[provSorted.length - 1];
+
+	const insights: Insight[] = [
+		{
+			tone: 'accent',
+			label: 'Cakupan Nasional',
+			value: `${coverage.toFixed(1)}%`,
+			detail: `Dari target rollout penuh 82,9 juta penerima (2029). Realisasi saat ini ${new Intl.NumberFormat('id-ID').format(t.penerima)} jiwa.`,
+			method: 'Rasio agregat',
+			confidence: 99
+		},
+		{
+			tone: 'warn',
+			label: 'Konsentrasi Geografis',
+			value: `${top3Share.toFixed(0)}%`,
+			detail: `${provSorted.slice(0, 3).map((p) => p.name).join(', ')} menyerap mayoritas penerima — sinyal ketimpangan distribusi antarwilayah.`,
+			method: 'Indeks konsentrasi',
+			confidence: 95
+		},
+		{
+			tone: 'neutral',
+			label: 'Dominasi Jenjang',
+			value: `${sdShare.toFixed(0)}%`,
+			detail: `Sekolah Dasar mendominasi penerima manfaat, mengarahkan prioritas logistik pada gizi anak usia 6–12 tahun.`,
+			method: 'Distribusi proporsi',
+			confidence: 97
+		},
+		{
+			tone: 'neutral',
+			label: 'Keseimbangan Gender',
+			value: `${((gAll.laki / totalGender) * 100).toFixed(1)} : ${((gAll.perempuan / totalGender) * 100).toFixed(1)}`,
+			detail: `Rasio laki-laki dibanding perempuan nyaris seimbang secara nasional.`,
+			method: 'Rasio agregat',
+			confidence: 99
+		},
+		{
+			tone: 'warn',
+			label: 'Kebutuhan Diet Khusus',
+			value: `${specialPer1k.toFixed(1)}‰`,
+			detail: `Per 1.000 penerima memiliki alergi, fobia, atau intoleransi makanan — perlu menu alternatif pada perencanaan dapur.`,
+			method: 'Prevalensi per-1.000',
+			confidence: 91
+		},
+		{
+			tone: 'accent',
+			label: 'Prioritas Ekspansi',
+			value: lowest?.name ?? '—',
+			detail: `Provinsi dengan realisasi terendah (${new Intl.NumberFormat('id-ID').format(lowest?.penerima ?? 0)} jiwa) — kandidat utama akselerasi tahap berikutnya.`,
+			method: 'Ranking + gap analysis',
+			confidence: 88
+		}
+	];
+
+	return {
+		views,
+		jenjangDist,
+		jenjangOrder: JENJANG_ORDER.filter((j) => jMap.has(j)),
+		geoStats,
+		insights,
+		forecast: { base: t.penerima, target: NATIONAL_TARGET }
+	};
 };

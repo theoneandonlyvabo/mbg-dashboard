@@ -39,3 +39,25 @@ export interface JenjangDist {
 	jenjang: string;
 	penerima: number;
 }
+
+export interface GeoStat {
+	key: string;
+	name: string;
+	penerima: number;
+	laki: number;
+	perempuan: number;
+	alergi: number;
+	fobia: number;
+	intoleransi: number;
+	satpen: number;
+	kabkota: number;
+}
+
+export interface Insight {
+	tone: 'accent' | 'warn' | 'neutral';
+	label: string;
+	value: string;
+	detail: string;
+	method: string;
+	confidence: number;
+}
