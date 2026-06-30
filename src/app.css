@@ -1,87 +1,173 @@
 :root {
-  --bg: #F8FAFC;
+  /* Surfaces — light, professional BI */
+  --bg: #F4F6F9;
+  --bg-soft: #FCFDFE;
   --surface: #FFFFFF;
-  --ink: #0F172A;
-  --ink-2: #334155;
-  --ink-3: #64748B;
-  --ink-4: #94A3B8;
-  --rule: #E2E8F0;
+  --surface-2: #F1F4F8;
+  --surface-3: #E6EBF1;
+  --rule: rgba(15, 23, 42, 0.08);
+  --rule-strong: rgba(15, 23, 42, 0.16);
+  --track: rgba(15, 23, 42, 0.06);
 
-  --blue:    #2563EB;
-  --violet:  #7C3AED;
-  --red:     #DC2626;
-  --amber:   #D97706;
-  --emerald: #059669;
-  --cyan:    #0891B2;
-  --rose:    #BE185D;
-  --stone:   #78716C;
-  --indigo:  #4F46E5;
+  /* Ink */
+  --ink: #0F1B2D;
+  --ink-2: #475569;
+  --ink-3: #8090A1;
+  --ink-4: #B3BECB;
 
-  --radius: 4px;
-  --font: 'Inter', system-ui, sans-serif;
+  /* Nutrition-green signature */
+  --accent: #16A34A;
+  --accent-strong: #15803D;
+  --accent-soft: rgba(22, 163, 74, 0.12);
+  --accent-glow: rgba(22, 163, 74, 0.22);
 
-  --space-section: clamp(4rem, 6vw, 7rem);
-  --space-chart: clamp(1.5rem, 3vw, 3rem);
-  --max-w: 1100px;
-  --px: clamp(1.25rem, 5vw, 3rem);
+  /* Data series — saturated, legible on white */
+  --c1: #059669; /* emerald */
+  --c2: #2563EB; /* blue */
+  --c3: #7C3AED; /* violet */
+  --c4: #D97706; /* amber */
+  --c5: #E11D48; /* rose */
+  --c6: #0D9488; /* teal */
+  --c7: #EA580C; /* orange */
+  --c8: #4F46E5; /* indigo */
+
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --gap: 14px;
+  --max-w: 1320px;
+  --px: clamp(0.875rem, 2.5vw, 1.75rem);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-family: var(--font); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
+html {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
 
-body { min-height: 100vh; }
+body {
+  min-height: 100vh;
+  /* Atmosphere: soft green + blue light, faint grid */
+  background:
+    radial-gradient(900px 480px at 80% -10%, rgba(22, 163, 74, 0.09), transparent 60%),
+    radial-gradient(720px 520px at 3% 4%, rgba(37, 99, 235, 0.06), transparent 55%),
+    var(--bg);
+  background-attachment: fixed;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+  background-size: 26px 26px;
+  z-index: 0;
+}
 
 .container {
   max-width: var(--max-w);
   margin: 0 auto;
   padding: 0 var(--px);
+  position: relative;
+  z-index: 1;
 }
 
-/* Typography */
-.section-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-3);
-}
-
-.section-title {
-  font-size: clamp(1.5rem, 3vw, 2rem);
-  font-weight: 300;
-  color: var(--ink);
-  line-height: 1.2;
-  margin-top: 0.25rem;
-}
-
-.section-title strong {
-  font-weight: 700;
-}
-
-hr.rule {
-  border: none;
-  border-top: 1px solid var(--rule);
-  margin: var(--space-section) 0;
-}
-
-/* SVG chart text */
-.bar-label {
-  font: 500 12px var(--font);
-  fill: var(--ink-2);
-}
-
-.bar-value {
-  font: 500 11px var(--font);
-  fill: var(--ink-3);
-}
-
-.axis-tick {
-  font: 400 10px var(--font);
-  fill: var(--ink-4);
-}
-
-.chart-wrap {
-  width: 100%;
+/* ── Bento tiles ── */
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 1.05rem 1.15rem 1.15rem;
+  position: relative;
   overflow: hidden;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 30px -22px rgba(15, 23, 42, 0.25);
+  transition: border-color 0.35s var(--ease), transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
 }
+.tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(140deg, rgba(22, 163, 74, 0), rgba(22, 163, 74, 0));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.4s var(--ease);
+  pointer-events: none;
+}
+.tile:hover {
+  border-color: transparent;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05), 0 22px 48px -26px rgba(15, 23, 42, 0.35);
+}
+.tile:hover::after {
+  background: linear-gradient(140deg, rgba(22, 163, 74, 0.55), rgba(37, 99, 235, 0.18) 45%, transparent 70%);
+  opacity: 1;
+}
+
+/* tile heads */
+.tile-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.tile-eyebrow::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.tile-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin-top: 0.35rem;
+  line-height: 1.15;
+}
+.tile-sub {
+  font-size: 0.75rem;
+  color: var(--ink-3);
+  margin-top: 0.15rem;
+}
+
+/* numbers */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* SVG text classes */
+.bar-label { font: 500 11.5px var(--font-body); fill: var(--ink-2); }
+.bar-value { font: 500 11px var(--font-mono); fill: var(--ink); font-variant-numeric: tabular-nums; }
+.axis-tick { font: 400 9.5px var(--font-mono); fill: var(--ink-4); }
+
+.chart-wrap { width: 100%; overflow: visible; position: relative; }
+
+::selection { background: var(--accent); color: #fff; }
+
+/* scrollbar */
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }

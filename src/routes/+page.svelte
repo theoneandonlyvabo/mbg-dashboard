@@ -4,286 +4,348 @@
 	import StackedBar from '$lib/charts/StackedBar.svelte';
 	import DonutChart from '$lib/charts/DonutChart.svelte';
 	import GroupedBar from '$lib/charts/GroupedBar.svelte';
-	import { fmtFull } from '$lib/format';
+	import CountUp from '$lib/CountUp.svelte';
+	import { fmtShort } from '$lib/format';
 
 	let { data }: { data: PageData } = $props();
 
+	let selected = $state('ALL');
+
+	const view = $derived(data.views[selected] ?? data.views.ALL);
+
 	const JENJANG_COLORS: Record<string, string> = {
-		SD: '#2563EB',
-		SMP: '#7C3AED',
-		SMA: '#DC2626',
-		SMK: '#D97706',
-		PAUD: '#059669',
-		SLB: '#0891B2',
-		SKB: '#BE185D',
-		PKBM: '#78716C'
+		SD: 'var(--c1)', SMP: 'var(--c2)', SMA: 'var(--c3)', SMK: 'var(--c4)',
+		PAUD: 'var(--c6)', SLB: 'var(--c5)', SKB: 'var(--c7)', PKBM: 'var(--c8)'
 	};
-
-	const jenjangBars = $derived(
-		data.byJenjang.map((j) => ({ label: j.jenjang, value: j.penerima, color: JENJANG_COLORS[j.jenjang] ?? '#6B7280' }))
-	);
-
-	const provinsiBars = $derived(data.topProvinsi.map((p) => ({ label: p.label, value: p.penerima })));
-
-	const genderRows = $derived(
-		data.byJenjang.map((j) => ({ label: j.jenjang, laki: j.laki, perempuan: j.perempuan }))
-	);
-
-	const sekolahDonut = $derived([
-		{ label: 'Negeri', value: data.sekolahSplit.negeri, color: '#2563EB' },
-		{ label: 'Swasta', value: data.sekolahSplit.swasta, color: '#F59E0B' }
-	]);
-
-	const statItems = $derived([
-		{ n: data.totals.penerima, label: 'Penerima Manfaat' },
-		{ n: data.totals.satpen, label: 'Satuan Pendidikan' },
-		{ n: data.totals.provinsi, label: 'Provinsi' },
-		{ n: data.totals.kabkota, label: 'Kab / Kota' }
-	]);
-
 	const PROVINCE_COLORS = [
-		'#2563EB','#7C3AED','#DC2626','#D97706','#059669',
-		'#0891B2','#BE185D','#78716C','#4F46E5','#0F766E',
-		'#B45309','#1D4ED8','#C026D3','#15803D','#B91C1C'
+		'#059669', '#2563EB', '#7C3AED', '#D97706', '#E11D48',
+		'#0D9488', '#EA580C', '#4F46E5', '#059669', '#2563EB',
+		'#7C3AED', '#D97706', '#E11D48', '#0D9488', '#EA580C'
 	];
+
+	const provinceBars = $derived(view.provinces.map((p) => ({ label: p.label, value: p.value })));
+	const genderRows = $derived([
+		{ label: selected === 'ALL' ? 'Total Nasional' : selected, laki: view.gender.laki, perempuan: view.gender.perempuan }
+	]);
+	const sekolahDonut = $derived([
+		{ label: 'Negeri', value: view.sekolah.negeri, color: 'var(--c2)' },
+		{ label: 'Swasta', value: view.sekolah.swasta, color: 'var(--c4)' }
+	]);
+
+	const maxJenjang = $derived(Math.max(...data.jenjangDist.map((j) => j.penerima)));
+
+	const kpis = $derived([
+		{ n: view.totals.penerima, label: 'Penerima Manfaat', unit: 'jiwa' },
+		{ n: view.totals.satpen, label: 'Satuan Pendidikan', unit: 'unit' },
+		{ n: view.totals.provinsi, label: 'Provinsi', unit: 'wilayah' },
+		{ n: view.totals.kabkota, label: 'Kabupaten / Kota', unit: 'wilayah' }
+	]);
+
+	const filterLabel = $derived(selected === 'ALL' ? 'Seluruh Jenjang' : `Jenjang ${selected}`);
 </script>
 
 <svelte:head>
-	<title>Dashboard MBG 2026</title>
+	<title>Dashboard MBG 2026 — Pusat Data</title>
 </svelte:head>
 
-<div class="page">
-	<!-- HEADER -->
-	<header class="site-header">
-		<div class="container">
-			<div class="header-inner">
-				<div>
-					<p class="header-eyebrow">Program Makan Bergizi Gratis</p>
-					<h1 class="header-title">Dashboard MBG <span>2026</span></h1>
-				</div>
-				<div class="header-badge">
-					<span class="badge-dot"></span>
-					Data per Juni 2026
-				</div>
+<!-- ── STICKY TOP BAR ── -->
+<header class="topbar">
+	<div class="container topbar-inner">
+		<div class="brand">
+			<div class="brand-mark">MBG</div>
+			<div class="brand-text">
+				<span class="brand-title">Pusat Data <strong>Makan Bergizi Gratis</strong></span>
+				<span class="brand-sub">Business Intelligence · Tahun Anggaran 2026</span>
 			</div>
 		</div>
-	</header>
 
-	<main>
-		<!-- STAT STRIP -->
-		<section class="stat-section">
-			<div class="container">
-				<div class="stat-strip">
-					{#each statItems as item, i}
-						<div class="stat-item">
-							<span class="stat-number">{fmtFull(item.n)}</span>
-							<span class="stat-label">{item.label}</span>
-						</div>
-						{#if i < statItems.length - 1}
-							<div class="stat-divider" aria-hidden="true"></div>
-						{/if}
-					{/each}
+		<nav class="filters" aria-label="Filter jenjang">
+			<button class="pill" class:active={selected === 'ALL'} onclick={() => (selected = 'ALL')}>Semua</button>
+			{#each data.jenjangOrder as j (j)}
+				<button class="pill" class:active={selected === j} onclick={() => (selected = j)}>{j}</button>
+			{/each}
+		</nav>
+
+		<div class="live">
+			<span class="live-dot"></span>
+			<span class="num">Jun 2026</span>
+		</div>
+	</div>
+</header>
+
+<main class="container">
+	<div class="bento">
+		<!-- KPI TILES -->
+		{#each kpis as kpi (kpi.label)}
+			<div class="tile kpi">
+				<span class="tile-eyebrow">{kpi.unit}</span>
+				<div class="kpi-num"><CountUp value={kpi.n} /></div>
+				<span class="kpi-label">{kpi.label}</span>
+			</div>
+		{/each}
+
+		<!-- PROVINCE RANKING (tall) -->
+		<div class="tile span7 row2">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Ranking Wilayah</span>
+					<h2 class="tile-title">15 Provinsi Penerima Terbesar</h2>
+				</div>
+				<span class="tag">{filterLabel}</span>
+			</div>
+			<div class="tile-chart">
+				<HorizBar data={provinceBars} colors={PROVINCE_COLORS} marginLeft={168} barHeight={20} gap={8} />
+			</div>
+		</div>
+
+		<!-- GENDER -->
+		<div class="tile span5">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Komposisi</span>
+					<h2 class="tile-title">Distribusi Gender</h2>
 				</div>
 			</div>
-		</section>
+			<div class="tile-chart">
+				<StackedBar data={genderRows} keys={['laki', 'perempuan']} labels={['Laki-laki', 'Perempuan']} colors={['var(--c2)', 'var(--c5)']} barHeight={30} marginLeft={4} />
+			</div>
+		</div>
 
-		<div class="container">
-			<hr class="rule" />
-
-			<!-- PENERIMA PER JENJANG -->
-			<section class="chart-section">
-				<div class="section-head">
-					<p class="section-label">Jenjang Pendidikan</p>
-					<h2 class="section-title">Penerima Manfaat <strong>per Jenjang</strong></h2>
-				</div>
-				<HorizBar data={jenjangBars} barHeight={38} gap={10} marginLeft={72} marginRight={80} />
-			</section>
-
-			<hr class="rule" />
-
-			<!-- TOP 15 PROVINSI -->
-			<section class="chart-section">
-				<div class="section-head">
-					<p class="section-label">Sebaran Wilayah</p>
-					<h2 class="section-title">15 Provinsi <strong>Teratas</strong></h2>
-				</div>
-				<HorizBar
-					data={provinsiBars}
-					colors={PROVINCE_COLORS}
-					barHeight={32}
-					gap={8}
-					marginLeft={200}
-					marginRight={80}
-				/>
-			</section>
-
-			<hr class="rule" />
-
-			<!-- GENDER + SEKOLAH -->
-			<section class="chart-section two-col">
+		<!-- SEKOLAH DONUT -->
+		<div class="tile span5">
+			<div class="tile-head">
 				<div>
-					<div class="section-head">
-						<p class="section-label">Distribusi Gender</p>
-						<h2 class="section-title">Laki-laki vs <strong>Perempuan</strong></h2>
-					</div>
-					<StackedBar
-						data={genderRows}
-						keys={['laki', 'perempuan']}
-						labels={['Laki-laki', 'Perempuan']}
-						colors={['#2563EB', '#F43F5E']}
-						barHeight={26}
-						gap={10}
-						marginLeft={72}
-						normalized={true}
-					/>
+					<span class="tile-eyebrow">Status</span>
+					<h2 class="tile-title">Negeri vs Swasta</h2>
 				</div>
-
-				<div class="col-side">
-					<div class="section-head">
-						<p class="section-label">Status Sekolah</p>
-						<h2 class="section-title">Negeri vs <strong>Swasta</strong></h2>
-					</div>
-					<DonutChart data={sekolahDonut} size={240} centerLabel="Satuan Pendidikan" />
-				</div>
-			</section>
-
-			<hr class="rule" />
-
-			<!-- KONDISI KHUSUS -->
-			<section class="chart-section">
-				<div class="section-head">
-					<p class="section-label">Kondisi Khusus Penerima</p>
-					<h2 class="section-title">Alergi, Fobia & Intoleransi <strong>per Provinsi</strong></h2>
-				</div>
-				<GroupedBar
-					data={data.specialByProv}
-					keys={['alergi', 'fobia', 'intoleransi']}
-					labels={['Alergi', 'Fobia Makanan', 'Intoleransi']}
-					colors={['#F59E0B', '#6366F1', '#10B981']}
-					subBarHeight={14}
-					subGap={4}
-					groupGap={18}
-					marginLeft={190}
-					marginRight={80}
-				/>
-			</section>
-
-			<hr class="rule" />
-
-			<!-- TOP 15 KABKOTA -->
-			<section class="chart-section">
-				<div class="section-head">
-					<p class="section-label">Kabupaten / Kota</p>
-					<h2 class="section-title">15 Kabupaten & Kota <strong>Teratas</strong></h2>
-				</div>
-				<HorizBar
-					data={data.topKabkota}
-					color="#7C3AED"
-					barHeight={32}
-					gap={8}
-					marginLeft={180}
-					marginRight={80}
-				/>
-			</section>
-
-			<hr class="rule" />
+			</div>
+			<div class="tile-chart donut">
+				<DonutChart data={sekolahDonut} size={172} centerLabel="Satpen" />
+			</div>
 		</div>
-	</main>
 
-	<footer class="site-footer">
-		<div class="container">
-			<p>Sumber data: MASTER_DATASET_MBG_BI2026 &mdash; Kementerian Pendidikan Dasar dan Menengah RI</p>
+		<!-- JENJANG DISTRIBUTION (interactive filter mirror) -->
+		<div class="tile span5">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Klik untuk memfilter</span>
+					<h2 class="tile-title">Penerima per Jenjang</h2>
+				</div>
+			</div>
+			<div class="jenjang-list">
+				{#each data.jenjangDist as j (j.jenjang)}
+					<button
+						class="jrow"
+						class:active={selected === j.jenjang}
+						onclick={() => (selected = selected === j.jenjang ? 'ALL' : j.jenjang)}
+					>
+						<span class="jname">{j.jenjang}</span>
+						<span class="jbar-track">
+							<span class="jbar-fill" style:width="{(j.penerima / maxJenjang) * 100}%" style:background={JENJANG_COLORS[j.jenjang]}></span>
+						</span>
+						<span class="jval num">{fmtShort(j.penerima)}</span>
+					</button>
+				{/each}
+			</div>
 		</div>
+
+		<!-- CONDITIONS -->
+		<div class="tile span7">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Kebutuhan Khusus</span>
+					<h2 class="tile-title">Alergi · Fobia · Intoleransi</h2>
+				</div>
+				<span class="tag">Top 10 Provinsi</span>
+			</div>
+			<div class="tile-chart">
+				<GroupedBar data={view.conditions} keys={['alergi', 'fobia', 'intoleransi']} labels={['Alergi', 'Fobia Makanan', 'Intoleransi']} colors={['var(--c4)', 'var(--c8)', 'var(--c6)']} marginLeft={158} />
+			</div>
+		</div>
+
+		<!-- KABKOTA -->
+		<div class="tile span12">
+			<div class="tile-head">
+				<div>
+					<span class="tile-eyebrow">Granular</span>
+					<h2 class="tile-title">15 Kabupaten / Kota Penerima Terbesar</h2>
+				</div>
+				<span class="tag">{filterLabel}</span>
+			</div>
+			<div class="tile-chart">
+				<HorizBar data={view.kabkota} color="var(--c2)" marginLeft={176} barHeight={20} gap={8} />
+			</div>
+		</div>
+	</div>
+
+	<footer class="foot">
+		<span>Sumber: <span class="num">MASTER_DATASET_MBG_BI2026</span></span>
+		<span>Kementerian Pendidikan Dasar &amp; Menengah RI</span>
 	</footer>
-</div>
+</main>
 
 <style>
-	.page { min-height: 100vh; background: var(--bg); }
-
-	/* Header */
-	.site-header { background: #0F172A; padding: 2.5rem 0 2rem; }
-	.header-inner {
-		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: 1rem;
-		flex-wrap: wrap;
+	/* ── Top bar ── */
+	.topbar {
+		position: sticky;
+		top: 0;
+		z-index: 20;
+		background: rgba(244, 246, 249, 0.82);
+		backdrop-filter: blur(14px);
+		border-bottom: 1px solid var(--rule);
 	}
-	.header-eyebrow {
-		font-size: 0.6875rem;
-		font-weight: 600;
-		letter-spacing: 0.12em;
-		text-transform: uppercase;
-		color: #60A5FA;
-		margin-bottom: 0.4rem;
-	}
-	.header-title {
-		font-size: clamp(2rem, 5vw, 3.25rem);
-		font-weight: 300;
-		color: #F8FAFC;
-		line-height: 1.1;
-	}
-	.header-title span { font-weight: 700; color: #60A5FA; }
-	.header-badge {
+	.topbar-inner {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
-		font-size: 0.8125rem;
-		color: #94A3B8;
-		border: 1px solid #1E293B;
-		padding: 0.4rem 0.875rem;
-		border-radius: 999px;
-		white-space: nowrap;
-	}
-	.badge-dot { width: 7px; height: 7px; border-radius: 50%; background: #22C55E; }
-
-	/* Stat strip */
-	.stat-section { background: white; padding: 3rem 0; border-bottom: 1px solid var(--rule); }
-	.stat-strip {
-		display: flex;
-		align-items: center;
+		gap: 1.25rem;
+		height: 64px;
 		justify-content: space-between;
-		gap: 1.5rem;
-		flex-wrap: wrap;
 	}
-	.stat-item { display: flex; flex-direction: column; gap: 0.3rem; }
-	.stat-number {
-		font-size: clamp(1.75rem, 4vw, 2.75rem);
-		font-weight: 700;
-		color: var(--ink);
+	.brand { display: flex; align-items: center; gap: 0.7rem; flex-shrink: 0; }
+	.brand-mark {
+		font-family: var(--font-display);
+		font-weight: 800;
+		font-size: 0.95rem;
 		letter-spacing: -0.02em;
-		line-height: 1;
+		color: #fff;
+		background: var(--accent);
+		padding: 0.3rem 0.5rem;
+		border-radius: 7px;
+		box-shadow: 0 6px 16px -6px var(--accent-glow);
 	}
-	.stat-label {
+	.brand-text { display: flex; flex-direction: column; line-height: 1.25; }
+	.brand-title { font-size: 0.875rem; color: var(--ink-2); font-weight: 400; }
+	.brand-title strong { color: var(--ink); font-weight: 600; }
+	.brand-sub { font-family: var(--font-mono); font-size: 0.625rem; color: var(--ink-3); letter-spacing: 0.04em; }
+
+	.filters { display: flex; gap: 0.3rem; overflow-x: auto; padding: 0.25rem; scrollbar-width: none; }
+	.filters::-webkit-scrollbar { display: none; }
+	.pill {
+		font-family: var(--font-mono);
 		font-size: 0.6875rem;
+		font-weight: 500;
+		letter-spacing: 0.03em;
+		color: var(--ink-2);
+		background: var(--surface-2);
+		border: 1px solid var(--rule);
+		border-radius: 999px;
+		padding: 0.38rem 0.8rem;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.22s var(--ease);
+	}
+	.pill:hover { color: var(--ink); border-color: var(--rule-strong); }
+	.pill.active {
+		color: #fff;
+		background: var(--accent);
+		border-color: var(--accent);
+		box-shadow: 0 6px 16px -6px var(--accent-glow);
+	}
+
+	.live { display: flex; align-items: center; gap: 0.45rem; font-size: 0.75rem; color: var(--ink-2); flex-shrink: 0; }
+	.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); animation: pulse 2s infinite; }
+	@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+	/* ── Bento grid ── */
+	.bento {
+		display: grid;
+		grid-template-columns: repeat(12, 1fr);
+		gap: var(--gap);
+		grid-auto-flow: row dense;
+		padding: var(--gap) 0 1.5rem;
+	}
+	.span5 { grid-column: span 5; }
+	.span7 { grid-column: span 7; }
+	.span12 { grid-column: span 12; }
+	.row2 { grid-row: span 2; }
+	.kpi { grid-column: span 3; }
+
+	.bento > .tile { animation: rise 0.55s var(--ease) backwards; }
+	.bento > .tile:nth-child(1) { animation-delay: 0.02s; }
+	.bento > .tile:nth-child(2) { animation-delay: 0.06s; }
+	.bento > .tile:nth-child(3) { animation-delay: 0.10s; }
+	.bento > .tile:nth-child(4) { animation-delay: 0.14s; }
+	.bento > .tile:nth-child(5) { animation-delay: 0.18s; }
+	.bento > .tile:nth-child(6) { animation-delay: 0.22s; }
+	.bento > .tile:nth-child(7) { animation-delay: 0.26s; }
+	.bento > .tile:nth-child(8) { animation-delay: 0.30s; }
+	.bento > .tile:nth-child(9) { animation-delay: 0.34s; }
+	@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+	/* KPI */
+	.kpi { display: flex; flex-direction: column; gap: 0.15rem; }
+	.kpi-num {
+		font-family: var(--font-mono);
+		font-variant-numeric: tabular-nums;
+		font-size: clamp(1.5rem, 2.6vw, 2.25rem);
 		font-weight: 600;
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
+		color: var(--ink);
+		letter-spacing: -0.03em;
+		line-height: 1.1;
+		margin-top: 0.5rem;
+	}
+	.kpi-label { font-size: 0.75rem; color: var(--ink-2); font-weight: 500; }
+
+	/* tile heads */
+	.tile-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; }
+	.tag {
+		font-family: var(--font-mono);
+		font-size: 0.625rem;
+		color: var(--ink-2);
+		background: var(--surface-2);
+		border: 1px solid var(--rule);
+		border-radius: 999px;
+		padding: 0.22rem 0.6rem;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+	.tile-chart { width: 100%; }
+	.tile-chart.donut { display: flex; align-items: center; min-height: 180px; }
+
+	/* jenjang interactive list */
+	.jenjang-list { display: flex; flex-direction: column; gap: 0.4rem; }
+	.jrow {
+		display: grid;
+		grid-template-columns: 42px 1fr 52px;
+		align-items: center;
+		gap: 0.6rem;
+		background: none;
+		border: 1px solid transparent;
+		border-radius: 8px;
+		padding: 0.3rem 0.4rem;
+		cursor: pointer;
+		transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+	}
+	.jrow:hover { background: var(--surface-2); }
+	.jrow.active { background: var(--surface-2); border-color: var(--rule-strong); }
+	.jname { font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500; color: var(--ink); text-align: left; }
+	.jbar-track { height: 8px; background: var(--track); border-radius: 5px; overflow: hidden; }
+	.jbar-fill { display: block; height: 100%; border-radius: 5px; transition: width 0.6s var(--ease); opacity: 0.9; }
+	.jval { font-size: 0.72rem; color: var(--ink-2); text-align: right; }
+
+	/* footer */
+	.foot {
+		display: flex;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		padding: 1.5rem 0 3rem;
+		border-top: 1px solid var(--rule);
+		margin-top: 0.5rem;
+		font-size: 0.7rem;
 		color: var(--ink-3);
 	}
-	.stat-divider { width: 1px; height: 2.5rem; background: var(--rule); flex-shrink: 0; }
+	.foot .num { color: var(--ink-2); }
 
-	/* Sections */
-	.chart-section { padding: var(--space-chart) 0; }
-	.section-head { margin-bottom: 1.75rem; }
-
-	/* Two-column */
-	.two-col {
-		display: grid;
-		grid-template-columns: 1fr auto;
-		gap: 4rem;
-		align-items: start;
+	/* ── Responsive ── */
+	@media (max-width: 1080px) {
+		.kpi { grid-column: span 6; }
+		.span7, .span5 { grid-column: span 12; }
+		.row2 { grid-row: span 1; }
 	}
-	.col-side { min-width: 300px; }
-
-	/* Footer */
-	.site-footer { padding: 2rem 0 3rem; border-top: 1px solid var(--rule); }
-	.site-footer p { font-size: 0.75rem; color: var(--ink-4); }
-
-	@media (max-width: 720px) {
-		.two-col { grid-template-columns: 1fr; }
-		.col-side { min-width: auto; }
-		.stat-divider { display: none; }
-		.stat-strip { gap: 2rem; }
+	@media (max-width: 560px) {
+		.kpi { grid-column: span 12; }
+		.brand-text { display: none; }
+		.topbar-inner { height: 56px; gap: 0.6rem; }
 	}
 </style>
