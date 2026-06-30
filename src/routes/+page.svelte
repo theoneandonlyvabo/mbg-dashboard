@@ -58,6 +58,19 @@
 			.sort((a, b) => b.value - a.value);
 	});
 
+	const nationalJenjangPie = data.jenjangDist.map((j) => ({
+		label: j.jenjang,
+		value: j.penerima,
+		color: JENJANG_COLORS[j.jenjang] ?? 'var(--ink-3)'
+	}));
+
+	const pieData = $derived(provJenjangPie.length ? provJenjangPie : nationalJenjangPie);
+
+	const nationalGenderPct = (() => {
+		const tot = data.views.ALL.gender.laki + data.views.ALL.gender.perempuan || 1;
+		return (data.views.ALL.gender.laki / tot) * 100;
+	})();
+
 	const kpis = $derived([
 		{ n: view.totals.penerima, label: 'Penerima Manfaat', unit: 'jiwa' },
 		{ n: view.totals.satpen, label: 'Satuan Pendidikan', unit: 'unit' },
@@ -159,14 +172,29 @@
 					<div><span class="dgi-v num">{fmtFull(activeStat.fobia + activeStat.intoleransi)}</span><span class="dgi-l">Fobia + Intol.</span></div>
 				</div>
 			{:else}
-				<div class="detail-empty">
-					<div class="detail-empty-icon" aria-hidden="true">
-						<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-							<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/>
-							<circle cx="12" cy="10" r="2.5"/>
-						</svg>
+				<span class="tile-eyebrow">Seluruh Wilayah · Nasional</span>
+				<h2 class="detail-name">Indonesia</h2>
+				<div class="detail-big num"><CountUp value={data.views.ALL.totals.penerima} /></div>
+				<span class="detail-cap">penerima manfaat</span>
+
+				<div class="detail-gender">
+					<div class="dg-track">
+						<span class="dg-l" style:width="{nationalGenderPct}%"></span>
 					</div>
-					<p class="detail-empty-text">Klik provinsi pada peta untuk melihat detail wilayah</p>
+					<div class="dg-labels">
+						<span>L · {fmtShort(data.views.ALL.gender.laki)}</span>
+						<span>P · {fmtShort(data.views.ALL.gender.perempuan)}</span>
+					</div>
+				</div>
+
+				<div class="detail-grid">
+					<div><span class="dgi-v num">{fmtShort(data.views.ALL.totals.satpen)}</span><span class="dgi-l">Satpen</span></div>
+					<div><span class="dgi-v num">{data.views.ALL.totals.provinsi}</span><span class="dgi-l">Provinsi</span></div>
+					<div><span class="dgi-v num">{data.views.ALL.totals.kabkota}</span><span class="dgi-l">Kab/Kota</span></div>
+					<div>
+						<span class="dgi-v num detail-hint">Klik peta</span>
+						<span class="dgi-l">untuk detail provinsi</span>
+					</div>
 				</div>
 			{/if}
 		</div>
@@ -176,28 +204,13 @@
 			<div class="tile-head">
 				<div>
 					<span class="tile-eyebrow">Sebaran Jenjang</span>
-					<h2 class="tile-title">{activeStat ? activeStat.name : 'Pilih Provinsi'}</h2>
+					<h2 class="tile-title">{activeStat ? activeStat.name : 'Nasional'}</h2>
 				</div>
-				{#if activeStat}
-					<span class="tag">Per jenjang</span>
-				{/if}
+				<span class="tag">{activeStat ? 'Per jenjang' : 'Seluruh provinsi'}</span>
 			</div>
-			{#if provJenjangPie.length}
-				<div class="tile-chart">
-					<PieChart data={provJenjangPie} size={150} />
-				</div>
-			{:else}
-				<div class="pie-empty">
-					<div class="pie-empty-icon" aria-hidden="true">
-						<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-							<circle cx="12" cy="12" r="9"/>
-							<path d="M12 12 L12 3"/>
-							<path d="M12 12 L20.1 16.5"/>
-						</svg>
-					</div>
-					<p class="pie-empty-text">Pilih provinsi untuk melihat distribusi jenjang</p>
-				</div>
-			{/if}
+			<div class="tile-chart">
+				<PieChart data={pieData} size={150} />
+			</div>
 		</div>
 
 		<!-- PROVINCE RANKING (tall) -->
@@ -482,50 +495,9 @@
 	.dgi-v { font-size: 1rem; font-weight: 600; color: var(--ink); }
 	.dgi-l { font-size: 0.62rem; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.05em; }
 
-	/* Province detail empty state */
-	.detail-empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.8rem;
-		flex: 1;
-		padding: 2rem 1rem;
-		text-align: center;
-	}
-	.detail-empty-icon {
-		color: var(--ink-4);
-		opacity: 0.6;
-	}
-	.detail-empty-text {
-		font-size: 0.78rem;
-		color: var(--ink-3);
-		line-height: 1.5;
-		max-width: 18ch;
-	}
-
 	/* Jenjang pie tile */
 	.pie-tile { display: flex; flex-direction: column; }
-	.pie-empty {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		gap: 0.7rem;
-		flex: 1;
-		padding: 1.5rem 1rem;
-		text-align: center;
-	}
-	.pie-empty-icon {
-		color: var(--ink-4);
-		opacity: 0.55;
-	}
-	.pie-empty-text {
-		font-size: 0.75rem;
-		color: var(--ink-3);
-		line-height: 1.5;
-		max-width: 20ch;
-	}
+	.detail-hint { font-size: 0.75rem !important; color: var(--accent) !important; font-weight: 500 !important; }
 
 	/* AI band */
 	.ai-head {

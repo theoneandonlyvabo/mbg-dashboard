@@ -84,8 +84,8 @@
 					},
 					click: () => {
 						if (!s) return;
-						selectedKey = key;
-						onselect?.(key);
+						selectedKey = selectedKey === key ? '' : key;
+						onselect?.(selectedKey);
 					}
 				});
 			}
